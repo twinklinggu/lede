@@ -69,7 +69,6 @@ jobs:
 
       - name: Compile firmware
         run: |
-          cp ./.github/workflows/r3pconfig ./.config
           make -j$(nproc) || make -j1 V=s
           echo "======================="
           tail .config
