@@ -72,6 +72,7 @@ jobs:
           cp ./.github/workflows/r3pconfig ./.config
           make -j$(nproc) || make -j1 V=s
           echo "======================="
+          tail .config
           echo "Space usage:"
           echo "======================="
           df -h
