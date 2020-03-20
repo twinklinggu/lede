@@ -223,11 +223,12 @@ start_rules() {
 	else
 		proxyport="-m multiport --dports 22,53,587,465,995,993,143,80,443"
 	fi
-	if [ "$NETFLIX_SERVER" != "same" ]; then
+	if [ "$NETFLIX_SERVER" != "$GLOBAL_SERVER" ]; then
     netflix="1"
   else
     netflix="0"
 	fi
+	netflix_ip=$(check_host $(uci_get_by_name $NETFLIX_SERVER server))
 	/usr/bin/ssr-rules \
 	-s "$server" \
 	-l "$local_port" \
@@ -242,6 +243,8 @@ start_rules() {
 	-G "$(uci_get_by_type access_control lan_gm_ips)" \
 	-D "$proxyport" \
 	-F "$netflix" \
+	-N "$netflix_ip" \
+	-M "$(uci_get_by_type global netflix_proxy 0)" \
 	$(get_arg_out) $gfwmode $ARG_UDP
 	return $?
 }
@@ -398,7 +401,7 @@ start_redir() {
     echo "$(date "+%Y-%m-%d %H:%M:%S") Network Tunnel REDIRECT $threads Threads Started!" >>/tmp/ssrplus.log
 	fi
 	
-	if [ "$NETFLIX_SERVER" != "same" ]; then
+	if [ "$NETFLIX_SERVER" != "$GLOBAL_SERVER" ]; then
     if [ "$ntype" == "ss" -o "$ntype" == "ssr" ]; then
         gen_config_file $NETFLIX_SERVER 2 4321
         gen_config_file $NETFLIX_SERVER 3 1088
@@ -406,7 +409,7 @@ start_redir() {
         dns2socks 127.0.0.1:1088 8.8.8.8:53 127.0.0.1:5555 -q >/dev/null 2>&1 &
         $ncmd -c /var/etc/shadowsocksr_n.json $ARG_OTA -f /var/run/ssr-netflix.pid >/dev/null 2>&1
     elif [ "$ntype" == "v2ray" ]; then
-        lua /usr/share/shadowsocksr/genv2nfconfig.lua $NETFLIX_SERVER tcp 4321 >/var/etc/v2-ssr-netflix.json
+        lua /usr/share/shadowsocksr/genv2config.lua $NETFLIX_SERVER tcp 4321 1088 >/var/etc/v2-ssr-netflix.json
         $ncmd -config /var/etc/v2-ssr-netflix.json >/dev/null 2>&1 &
         dns2socks 127.0.0.1:1088 8.8.8.8:53 127.0.0.1:5555 -q >/dev/null 2>&1 &
     elif [ "$ntype" == "trojan" ]; then
@@ -630,7 +633,7 @@ start() {
 		fi
 		/usr/share/shadowsocksr/gfw2ipset.sh
 		
-		if [ "$NETFLIX_SERVER" != "same" ]; then
+		if [ "$NETFLIX_SERVER" != "$GLOBAL_SERVER" ]; then
       cat /etc/config/netflix.list | while read line || [ -n "$line" ]; 
       do
         sed -i "/$line/d" /tmp/dnsmasq.ssr/gfw_list.conf
@@ -643,8 +646,6 @@ start() {
       do
         ipset add netflix $nip 2>/dev/null
       done
-
-      ipset add ss_spec_wan_ac $(check_host $(uci_get_by_name $NETFLIX_SERVER server)) 2>/dev/null
     else
       rm -f /tmp/dnsmasq.ssr/netflix_forward.conf
     fi
