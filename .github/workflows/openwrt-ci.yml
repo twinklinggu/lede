@@ -10,18 +10,9 @@
 name: OpenWrt-CI
 
 on:
-<<<<<<< HEAD
   push:
     branches: 
       - master
-=======
-  schedule:
-    - cron: 0 20 * * *
-  push:
-    tags:
-      - '*'
->>>>>>> lean/master
-
 jobs:
 
   build_openwrt:
